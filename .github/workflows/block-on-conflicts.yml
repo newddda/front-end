@@ -1,0 +1,27 @@
+name: Block PRs with Forbidden Labels
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+jobs:
+  block-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for forbidden labels
+        run: |
+          echo "Checking for forbidden labels..."
+          forbidden_labels=("deploy-conflict")
+
+          pr_labels=$(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH")
+
+          echo "Labels on PR: $pr_labels"
+
+          for forbidden in "${forbidden_labels[@]}"; do
+            if echo "$pr_labels" | grep -iq "^$forbidden$"; then
+              echo "❌ PR has forbidden label: $forbidden"
+              exit 1
+            fi
+          done
+
+          echo "✅ No forbidden labels found. Continuing."

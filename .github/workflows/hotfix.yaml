@@ -22,6 +22,19 @@ jobs:
         with:
           ref: refs/pull/${{ github.event.issue.number }}/head
 
+      - name: Comment Action Run Link on Original PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `🔗 **View Action Run:** [Click Here](${runUrl})`
+            });
+
       - name: Fetch base branch
         run: |
           git fetch origin ${{ github.event.pull_request.base.ref }}:${{ github.event.pull_request.base.ref }}
@@ -55,10 +68,21 @@ jobs:
         id: patch
         run: |
           BRANCHES=$(git ls-remote --heads origin "patch/v*" | awk '{print $2}' | sed 's|refs/heads/||')
-          echo "Found branches:"
-          echo "$BRANCHES"
 
-          LATEST=$(echo "$BRANCHES" | sort -t'v' -k2 -V | tail -n 1)
+          # Filter only patch branches with vX.Y pattern (no extra dots)
+          VALID_BRANCHES=$(echo "$BRANCHES" | grep -E '^patch/v[0-9]+\.[0-9]+$')
+
+          if [ -z "$VALID_BRANCHES" ]; then
+            echo "❌ No valid patch branches found (must match patch/vX.Y)"
+            exit 1
+          fi
+
+          echo "Found valid branches:"
+          echo "$VALID_BRANCHES"
+
+          # Sort branches by version (vX.Y) and get the latest
+          LATEST=$(echo "$VALID_BRANCHES" | sort -t'v' -k2 -V | tail -n 1)
+
           echo "Latest patch branch: $LATEST"
           echo "latest_patch_branch=$LATEST" >> $GITHUB_OUTPUT
 
@@ -69,8 +93,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           pr_info='${{ steps.pr.outputs.result }}'
-
-
 
           # Parse the JSON string first, then extract fields
           parsed_json=$(echo "$pr_info" | jq -r '.')
@@ -96,37 +118,124 @@ jobs:
           
           # Create new branch from patch branch
           echo "Creating new branch from patch branch..."
-
-          timestamp=$(date +%Y%m%d%H%M%S)
-          hotfix_branch="${{ steps.patch.outputs.latest_patch_branch }}_${timestamp}"
-
-          git fetch origin ${{ steps.patch.outputs.latest_patch_branch }}:${{ steps.patch.outputs.latest_patch_branch }}
-          git checkout ${{ steps.patch.outputs.latest_patch_branch }}
-          git checkout -b $hotfix_branch
           
-          # Push the new branch
-          git cherry-pick $mergeCommitSha
+          timestamp=$(date +%Y%m%d%H%M%S)
+
+          latest_patch_branch=${{ steps.patch.outputs.latest_patch_branch }}
+          hotfix_branch="${latest_patch_branch}_${timestamp}"
+
+          git fetch origin $latest_patch_branch:$latest_patch_branch
+          git checkout $latest_patch_branch
+
+          git checkout -b $hotfix_branch
+
+          is_cherry_pick_success=false
+
+          if git cherry-pick "$mergeCommitSha"; then
+            is_cherry_pick_success=true
+          else
+            git cherry-pick --abort
+            git commit --allow-empty -m "We have conflicts when cherry-picking the commit: $mergeCommitSha"
+          fi
+
           git push origin $hotfix_branch
           
-          echo "New branch '$hotfix_branch' created from '${{ steps.patch.outputs.latest_patch_branch }}' branch"
           echo "hotfix_branch=$hotfix_branch" >> $GITHUB_OUTPUT
+          echo "is_cherry_pick_success=$is_cherry_pick_success" >> $GITHUB_OUTPUT
+          echo "merge_commit_sha=$mergeCommitSha" >> $GITHUB_OUTPUT
+          echo "latest_patch_branch=${{ steps.patch.outputs.latest_patch_branch }}" >> $GITHUB_OUTPUT
 
       - name: Create PR
+        id: new_pr
         uses: actions/github-script@v7
         with:
           script: |
-            await github.rest.pulls.create({
+            const isCherryPickSuccess = "${{ steps.squash.outputs.is_cherry_pick_success }}" === "true";
+            const mergeCommitSha = "${{ steps.squash.outputs.merge_commit_sha }}";
+            const hotfixBranch = "${{ steps.squash.outputs.hotfix_branch }}";
+            const latestPatchBranch = "${{ steps.patch.outputs.latest_patch_branch }}";
+
+            const sc1 = `
+            \`\`\`bash
+            git fetch origin $hotfixBranch:$hotfixBranch
+            git checkout ${hotfixBranch}
+            git cherry-pick ${mergeCommitSha}
+            \`\`\`
+            `;
+
+            const sc2 = `
+            \`\`\`bash
+            # Resolve conflicts manually in your editor
+            \`\`\`
+            `;
+
+            const sc3 = `
+            \`\`\`bash
+            git add .
+            git cherry-pick --continue
+            git push
+            \`\`\`
+            `;
+            const title = isCherryPickSuccess ?
+              `New branch from ${{ steps.patch.outputs.latest_patch_branch }}` :
+              `New branch from ${{ steps.patch.outputs.latest_patch_branch }} (with conflicts)`;
+
+            const labels = isCherryPickSuccess ? ['deploy-hotfix'] : ['deploy-hotfix', 'deploy-conflict'];
+
+            const body = isCherryPickSuccess ? 
+              'This PR was created automatically from the patch branch' : 
+              `## Conflicts when cherry pick: ${mergeCommitSha} ## \n\n\n${sc1} \n${sc2} \n${sc3}`;
+
+            const pr = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: 'New branch from ${{ steps.patch.outputs.latest_patch_branch }}',
-              head: '${{ steps.squash.outputs.hotfix_branch }}',
-              base: '${{ steps.patch.outputs.latest_patch_branch }}',
-              body: 'This PR was created automatically from the patch branch',
-              labels: ['deploy-hotfix']
+              title,
+              head: hotfixBranch,
+              base: latestPatchBranch,
+              body
             });
 
-            console.log('PR created successfully');
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.data.number,
+              labels: labels
+            });
+          
+            return {
+              new_pr_url: pr.data.html_url,
+            };
   
       - name: Show squashed commit
         run: |
           git show ${{ steps.squash.outputs.commit_sha }}
+
+      - name: Comment with new PR link
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const result = JSON.parse('${{ steps.new_pr.outputs.result }}');
+            const newPrUrl = result.new_pr_url;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `A new hotfix PR has been created: [${newPrUrl}](${newPrUrl})`
+            });
+
+  notify_on_failure:
+    needs: show-squash-commit
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `❌ Workflow failed. See details: [Action Run](${runUrl})`
+            });

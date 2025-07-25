@@ -28,52 +28,55 @@ jobs:
       - name: Get merged branch and find latest tag
         id: find-latest-tag
         run: |
-          # Get the base branch that was merged into
-          BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
-          echo "Base branch: $BASE_BRANCH"
+          PATCH_BRANCH="${{ github.event.pull_request.base.ref }}"
+          echo "Patch branch: $PATCH_BRANCH"
           
-          # Extract version from patch branch (e.g., patch/v0.1 -> v0.1)
-          if [[ $BASE_BRANCH =~ ^patch/v([0-9]+\.[0-9]+)$ ]]; then
-            VERSION_PREFIX="v${BASH_REMATCH[1]}"
-            echo "Version prefix: $VERSION_PREFIX"
-            
-            # Fetch all tags
-            git fetch --tags
-            
-            # Find the latest tag for this version pattern
-            LATEST_TAG=$(git tag --list "$VERSION_PREFIX.*" | sort -V | tail -n 1)
-            
-            if [[ -n "$LATEST_TAG" ]]; then
-              echo "Latest tag found: $LATEST_TAG"
-              
-              # Extract the patch number and increment it
-              if [[ $LATEST_TAG =~ ^${VERSION_PREFIX}\.([0-9]+)$ ]]; then
-                CURRENT_PATCH=${BASH_REMATCH[1]}
-                NEW_PATCH=$((CURRENT_PATCH + 1))
-                NEW_TAG="${VERSION_PREFIX}.${NEW_PATCH}"
-                echo "Incrementing patch version: $CURRENT_PATCH -> $NEW_PATCH"
-                echo "New tag: $NEW_TAG"
-                echo "latest_tag=$NEW_TAG" >> $GITHUB_OUTPUT
-              else
-                echo "Could not parse patch number from tag: $LATEST_TAG"
-                exit 1
-              fi
-            else
-              # No existing tags found, start with .1
-              NEW_TAG="${VERSION_PREFIX}.1"
-              echo "No existing tags found, starting with: $NEW_TAG"
-              echo "latest_tag=$NEW_TAG" >> $GITHUB_OUTPUT
-            fi
+          prefix=$(echo $PATCH_BRANCH | cut -d'/' -f2)
+          
+          git fetch origin --tags
+          current_version=$(git tag --merged HEAD | grep "^${prefix}\." | sort -V | tail -n1)
+          timestamp=$(date +%Y%m%d%H%M%S)
+          
+          # Extract version numbers
+          major=$(echo $current_version | cut -d'.' -f1 | tr -d 'v')
+          minor=$(echo $current_version | cut -d'.' -f2)
+          patch=$(echo $current_version | cut -d'.' -f3)
+
+          new_patch=$((patch + 1))
+          new_version="v${major}.${minor}.${new_patch}"
+          
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+          
+          # Try to create the new tag
+          if git tag $new_version; then
+            echo "Successfully created tag: $new_version"
+            echo "tag_created=true" >> $GITHUB_OUTPUT
           else
-            echo "Base branch $BASE_BRANCH does not match patch/vX.Y pattern"
-            exit 1
+            echo "Failed to create tag: $new_version"
+            echo "tag_created=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create new tag and update 'latest'
+      - name: Push new tag
+        if: steps.find-latest-tag.outputs.tag_created == 'true'
         run: |
-          NEW_TAG="${{ steps.find-latest-tag.outputs.latest_tag }}"
-          echo "Creating new tag: $NEW_TAG"
+          NEW_VERSION="${{ steps.find-latest-tag.outputs.new_version }}"
+          git push origin $NEW_VERSION
           
-          # Create the new incremented tag
-          git tag $NEW_TAG
-          git push origin $NEW_TAG
+          # Update latest tag
+          git tag -f latest $NEW_VERSION
+          git push origin latest --force
+
+      - name: Add deploy-conflict label on failure
+        if: steps.find-latest-tag.outputs.tag_created == 'false'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { owner, repo, number } = context.issue;
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number: number,
+              labels: ['deploy-conflict']
+            });
+            console.log('Added deploy-conflict label due to cherry-pick failure');
+
