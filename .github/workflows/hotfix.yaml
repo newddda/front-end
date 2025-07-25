@@ -51,6 +51,17 @@ jobs:
               isMerged: !!pr.data.merged_at
             })
 
+      - name: Find actual patch branch
+        id: patch
+        run: |
+          BRANCHES=$(git ls-remote --heads origin "patch/v*" | awk '{print $2}' | sed 's|refs/heads/||')
+          echo "Found branches:"
+          echo "$BRANCHES"
+
+          LATEST=$(echo "$BRANCHES" | sort -t'v' -k2 -V | tail -n 1)
+          echo "Latest patch branch: $LATEST"
+          echo "latest_patch_branch=$LATEST" >> $GITHUB_OUTPUT
+
       - name: Create squash merge commit
         id: squash
         run: |
@@ -63,7 +74,7 @@ jobs:
 
           # Parse the JSON string first, then extract fields
           parsed_json=$(echo "$pr_info" | jq -r '.')
-          
+
           base=$(echo "$parsed_json" | jq -r '.base')
           head=$(echo "$parsed_json" | jq -r '.head')
           title=$(echo "$parsed_json" | jq -r '.title')
@@ -86,17 +97,17 @@ jobs:
           # Create new branch from patch branch
           echo "Creating new branch from patch branch..."
 
-          
+          latest_patch_branch = '${{ steps.patch.outputs.latest_patch_branch }}'
 
-          git fetch origin patch/v0.1:patch/v0.1
-          git checkout patch/v0.1
+          git fetch origin ${{ steps.patch.outputs.latest_patch_branch }}:${{ steps.patch.outputs.latest_patch_branch }}
+          git checkout ${{ steps.patch.outputs.latest_patch_branch }}
           git checkout -b newBranch
           
           # Push the new branch
           git cherry-pick $mergeCommitSha
           git push origin newBranch
           
-          echo "New branch 'newBranch' created from 'patch/v0.1' branch"
+          echo "New branch 'newBranch' created from '${{ steps.patch.outputs.latest_patch_branch }}' branch"
           
       - name: Create PR
         uses: actions/github-script@v7
@@ -105,9 +116,9 @@ jobs:
             await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: 'New branch from patch/v0.1',
+              title: 'New branch from ${{ steps.patch.outputs.latest_patch_branch }}',
               head: 'newBranch',
-              base: 'patch/v0.1',
+              base: '${{ steps.patch.outputs.latest_patch_branch }}',
               body: 'This PR was created automatically from the patch branch'
             });
 
