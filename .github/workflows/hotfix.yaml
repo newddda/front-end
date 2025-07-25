@@ -97,7 +97,7 @@ jobs:
           # Create new branch from patch branch
           echo "Creating new branch from patch branch..."
 
-          hotfix_branch='${{ steps.patch.outputs.latest_patch_branch }}_hotfix_$mergeCommitSha'
+          hotfix_branch="${{ steps.patch.outputs.latest_patch_branch }}_hotfix_${mergeCommitSha}"
 
           git fetch origin ${{ steps.patch.outputs.latest_patch_branch }}:${{ steps.patch.outputs.latest_patch_branch }}
           git checkout ${{ steps.patch.outputs.latest_patch_branch }}
