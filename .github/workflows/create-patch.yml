@@ -1,0 +1,79 @@
+name: Create Latest Tag on Hotfix Deploy
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  pull-requests: write
+  contents: write
+  issues: write
+  actions: write
+
+jobs:
+  tag-latest-on-hotfix:
+    if: |
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'deploy-hotfix')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Git
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Get merged branch and find latest tag
+        id: find-latest-tag
+        run: |
+          # Get the base branch that was merged into
+          BASE_BRANCH="${{ github.event.pull_request.base.ref }}"
+          echo "Base branch: $BASE_BRANCH"
+          
+          # Extract version from patch branch (e.g., patch/v0.1 -> v0.1)
+          if [[ $BASE_BRANCH =~ ^patch/v([0-9]+\.[0-9]+)$ ]]; then
+            VERSION_PREFIX="v${BASH_REMATCH[1]}"
+            echo "Version prefix: $VERSION_PREFIX"
+            
+            # Fetch all tags
+            git fetch --tags
+            
+            # Find the latest tag for this version pattern
+            LATEST_TAG=$(git tag --list "$VERSION_PREFIX.*" | sort -V | tail -n 1)
+            
+            if [[ -n "$LATEST_TAG" ]]; then
+              echo "Latest tag found: $LATEST_TAG"
+              
+              # Extract the patch number and increment it
+              if [[ $LATEST_TAG =~ ^${VERSION_PREFIX}\.([0-9]+)$ ]]; then
+                CURRENT_PATCH=${BASH_REMATCH[1]}
+                NEW_PATCH=$((CURRENT_PATCH + 1))
+                NEW_TAG="${VERSION_PREFIX}.${NEW_PATCH}"
+                echo "Incrementing patch version: $CURRENT_PATCH -> $NEW_PATCH"
+                echo "New tag: $NEW_TAG"
+                echo "latest_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+              else
+                echo "Could not parse patch number from tag: $LATEST_TAG"
+                exit 1
+              fi
+            else
+              # No existing tags found, start with .1
+              NEW_TAG="${VERSION_PREFIX}.1"
+              echo "No existing tags found, starting with: $NEW_TAG"
+              echo "latest_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "Base branch $BASE_BRANCH does not match patch/vX.Y pattern"
+            exit 1
+          fi
+
+      - name: Create new tag and update 'latest'
+        run: |
+          NEW_TAG="${{ steps.find-latest-tag.outputs.latest_tag }}"
+          echo "Creating new tag: $NEW_TAG"
+          
+          # Create the new incremented tag
+          git tag $NEW_TAG
+          git push origin $NEW_TAG

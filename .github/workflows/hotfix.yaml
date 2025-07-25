@@ -118,6 +118,7 @@ jobs:
               head: 'newBranch',
               base: '${{ steps.patch.outputs.latest_patch_branch }}',
               body: 'This PR was created automatically from the patch branch'
+              labels: ['deploy-hotfix']
             });
 
             console.log('PR created successfully');
