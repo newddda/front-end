@@ -1,6 +1,7 @@
 name: Find actual patch branch
 
 on:
+  workflow_dispatch:
   issue_comment:
     types: [created]
 
@@ -13,30 +14,21 @@ permissions:
 jobs:
   show-squash-commit:
     if: |
-      github.event.issue.pull_request != null &&
-      startsWith(github.event.comment.body, 'deploy')
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.pull_request != null &&
+       startsWith(github.event.comment.body, 'deploy'))
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR branch
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: refs/pull/${{ github.event.issue.number }}/head
 
-      - name: Fetch base branch
-        run: |
-          git fetch origin ${{ github.event.pull_request.base.ref }}:${{ github.event.pull_request.base.ref }}
-          
       - name: Find actual patch branch
         id: patch
         run: |
-          # Get all remote branches matching patch/v*
           BRANCHES=$(git ls-remote --heads origin "patch/v*" | awk '{print $2}' | sed 's|refs/heads/||')
-
           echo "Found branches:"
           echo "$BRANCHES"
 
-          # Sort branches by version (vX.Y) and get the latest
           LATEST=$(echo "$BRANCHES" | sort -t'v' -k2 -V | tail -n 1)
-
           echo "Latest patch branch: $LATEST"
           echo "latest_patch_branch=$LATEST" >> $GITHUB_OUTPUT
