@@ -122,7 +122,7 @@ jobs:
           timestamp=$(date +%Y%m%d%H%M%S)
 
           latest_patch_branch=${{ steps.patch.outputs.latest_patch_branch }}
-          hotfix_branch="${latest_patch_branch}_${timestamp}"
+          hotfix_branch="${latest_patch_branch}_hotfix_${timestamp}"
 
           git fetch origin $latest_patch_branch:$latest_patch_branch
           git checkout $latest_patch_branch
