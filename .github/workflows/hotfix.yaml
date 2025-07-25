@@ -128,7 +128,7 @@ jobs:
             git checkout --ours .
             git add .
             git commit --allow-empty -m "Conflict resolved"
-            git cherry-pick --continue
+            # git cherry-pick --continue
             git push origin $pre_hotfix_branch
           fi
 
@@ -140,7 +140,7 @@ jobs:
             git checkout --theirs .
             git add .
             git commit --allow-empty -m "Conflict resolved"
-            git cherry-pick --continue
+            # git cherry-pick --continue
             git push origin $next_hotfix_branch
           fi
 
