@@ -133,7 +133,6 @@ jobs:
             git add .
             echo "4"
 
-            git cherry-pick --continue
             echo "5"
             git push origin $pre_hotfix_branch
           fi
@@ -147,7 +146,6 @@ jobs:
           else
             git checkout --theirs .
             git add .
-            git cherry-pick --continue
             git push origin $next_hotfix_branch
           fi
 
