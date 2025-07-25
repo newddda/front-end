@@ -102,7 +102,7 @@ jobs:
           git checkout -b newBranch
           
           # Push the new branch
-          git cherry-pick -m 1 $mergeCommitSha
+          git cherry-pick $mergeCommitSha
           git push origin newBranch
           
           echo "New branch 'newBranch' created from '${{ steps.patch.outputs.latest_patch_branch }}' branch"
