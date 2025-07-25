@@ -165,8 +165,8 @@ jobs:
               repo: context.repo.repo,
               title: `New branch from ${{ steps.patch.outputs.latest_patch_branch }}`,
 
-              head: nextHotfixBranch,
-              base: latestPatchBranch,
+              head: preHotfixBranch,
+              base: nextHotfixBranch,
               body: 'This PR was created automatically from the patch branch',
               labels: ['deploy-hotfix']
             });
