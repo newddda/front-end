@@ -14,9 +14,7 @@ permissions:
 jobs:
   show-squash-commit:
     if: |
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.issue.pull_request != null &&
-       startsWith(github.event.comment.body, 'deploy'))
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
