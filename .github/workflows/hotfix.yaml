@@ -175,7 +175,6 @@ jobs:
                 
                 \n\n
                 **Step 1:**\n
-                ${sc1}
               `;
 
             const pr = await github.rest.pulls.create({
