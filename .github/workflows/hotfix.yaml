@@ -97,8 +97,6 @@ jobs:
           # Create new branch from patch branch
           echo "Creating new branch from patch branch..."
 
-          latest_patch_branch = '${{ steps.patch.outputs.latest_patch_branch }}'
-
           git fetch origin ${{ steps.patch.outputs.latest_patch_branch }}:${{ steps.patch.outputs.latest_patch_branch }}
           git checkout ${{ steps.patch.outputs.latest_patch_branch }}
           git checkout -b newBranch
