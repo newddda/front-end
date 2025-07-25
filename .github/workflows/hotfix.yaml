@@ -143,25 +143,24 @@ jobs:
 
             const sc1 = `
             \`\`\`bash
-              git checkout ${hotfixBranch}
-              git cherry-pick ${mergeCommitSha}
+            git checkout ${hotfixBranch}
+            git cherry-pick ${mergeCommitSha}
             \`\`\`
             `;
 
             const sc2 = `
             \`\`\`bash
-              ... Resolve conflicts
+            # Resolve conflicts manually in your editor
             \`\`\`
             `;
 
             const sc3 = `
             \`\`\`bash
-              git add .
-              git cherry-pick --continue
-              git push
+            git add .
+            git cherry-pick --continue
+            git push
             \`\`\`
             `;
-
             const title = isCherryPickSuccess ?
               `New branch from ${{ steps.patch.outputs.latest_patch_branch }}` :
               `New branch from ${{ steps.patch.outputs.latest_patch_branch }} (with conflicts)`;
@@ -175,16 +174,8 @@ jobs:
                 ${mergeCommitSha}
                 
                 \n\n
-                **Step 1:**
-                \n${sc1}
-
-                \n\n
-                **Step 2:**
-                \n${sc2}
-
-                \n\n
-                **Step 3:**
-                \n${sc3}
+                **Step 1:**\n
+                ${sc1}
               `;
 
             const pr = await github.rest.pulls.create({
