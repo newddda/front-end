@@ -2,8 +2,6 @@ name: Find actual patch branch
 
 on:
   workflow_dispatch:
-  issue_comment:
-    types: [created]
 
 permissions:
   pull-requests: write
