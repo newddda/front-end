@@ -97,7 +97,8 @@ jobs:
           # Create new branch from patch branch
           echo "Creating new branch from patch branch..."
 
-          hotfix_branch="${{ steps.patch.outputs.latest_patch_branch }}_hotfix_${mergeCommitSha}"
+          timestamp=$(date +%Y%m%d%H%M%S)
+          hotfix_branch="${{ steps.patch.outputs.latest_patch_branch }}_${timestamp}"
 
           git fetch origin ${{ steps.patch.outputs.latest_patch_branch }}:${{ steps.patch.outputs.latest_patch_branch }}
           git checkout ${{ steps.patch.outputs.latest_patch_branch }}
