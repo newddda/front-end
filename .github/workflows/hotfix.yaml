@@ -114,124 +114,89 @@ jobs:
           git fetch origin $latest_patch_branch:$latest_patch_branch
           git checkout $latest_patch_branch
 
-          pre_hotfix_branch="${hotfix_branch}_prev"
-          git checkout -b $pre_hotfix_branch
-          git push origin $pre_hotfix_branch
-
-          git checkout $latest_patch_branch
-
-          next_hotfix_branch="${hotfix_branch}_next"
-          git checkout -b $next_hotfix_branch
-          git push origin $next_hotfix_branch
+          git checkout -b $hotfix_branch
 
           is_cherry_pick_success=false
 
-          # prev -> next
-
-          git checkout $pre_hotfix_branch
           if git cherry-pick "$mergeCommitSha"; then
             is_cherry_pick_success=true
           else
-            git checkout --theirs .
-            git add .
-            git commit --allow-empty -m "Conflict resolved"
-            # git cherry-pick --continue
-            git push origin $pre_hotfix_branch
+            git cherry-pick --abort
+            git commit --allow-empty -m "We have conflicts when cherry-picking the commit: $mergeCommitSha"
           fi
 
-          git checkout $next_hotfix_branch
-          if git cherry-pick "$mergeCommitSha"; then
-            is_cherry_pick_success=true
-            echo "✅ Cherry-pick succeeded. Pushing..."
-          else
-            git checkout --ours .
-            git add .
-            git commit --allow-empty -m "Conflict resolved"
-            # git cherry-pick --continue
-            git push origin $next_hotfix_branch
-          fi
-
-          # git push origin $hotfix_branch
+          git push origin $hotfix_branch
           
           echo "hotfix_branch=$hotfix_branch" >> $GITHUB_OUTPUT
           echo "is_cherry_pick_success=$is_cherry_pick_success" >> $GITHUB_OUTPUT
-          echo "mergeCommitSha=$mergeCommitSha" >> $GITHUB_OUTPUT
-          echo "pre_hotfix_branch=$pre_hotfix_branch" >> $GITHUB_OUTPUT
-          echo "next_hotfix_branch=$next_hotfix_branch" >> $GITHUB_OUTPUT
+          echo "merge_commit_sha=$mergeCommitSha" >> $GITHUB_OUTPUT
+          echo "latest_patch_branch=${{ steps.patch.outputs.latest_patch_branch }}" >> $GITHUB_OUTPUT
 
       - name: Create PR
         uses: actions/github-script@v7
         with:
           script: |
-            const preHotfixBranch = "${{ steps.squash.outputs.pre_hotfix_branch }}";
-            const nextHotfixBranch = "${{ steps.squash.outputs.next_hotfix_branch }}";
+            const isCherryPickSuccess = "${{ steps.squash.outputs.is_cherry_pick_success }}" === "true";
+            const mergeCommitSha = "${{ steps.squash.outputs.merge_commit_sha }}";
+            const hotfixBranch = "${{ steps.squash.outputs.hotfix_branch }}";
+            const latestPatchBranch = "${{ steps.patch.outputs.latest_patch_branch }}";
+
+            const sc1 = `
+            \`\`\`bash
+              git checkout ${hotfixBranch}
+              git cherry-pick ${mergeCommitSha}
+            \`\`\`
+            `;
+
+            const sc2 = `
+            \`\`\`bash
+              ... Resolve conflicts
+            \`\`\`
+            `;
+
+            const sc3 = `
+            \`\`\`bash
+              git add .
+              git cherry-pick --continue
+              git push
+            \`\`\`
+            `;
+
+            const title = isCherryPickSuccess ?
+              `New branch from ${{ steps.patch.outputs.latest_patch_branch }}` :
+              `New branch from ${{ steps.patch.outputs.latest_patch_branch }} (with conflicts)`;
+
+            const labels = isCherryPickSuccess ? ['deploy-hotfix'] : ['deploy-hotfix', 'deploy-conflict'];
+
+            const body = isCherryPickSuccess ? 
+              'This PR was created automatically from the patch branch' : 
+              `
+                This PR was created automatically from the patch branch, but there were conflicts when cherry-picking the commit: 
+                ${mergeCommitSha}
+                
+                \n\n
+                **Step 1:**
+                \n${sc1}
+
+                \n\n
+                **Step 2:**
+                \n${sc2}
+
+                \n\n
+                **Step 3:**
+                \n${sc3}
+              `;
 
             const pr = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `New branch from ${{ steps.patch.outputs.latest_patch_branch }}`,
-
-              head: preHotfixBranch,
-              base: nextHotfixBranch,
-              body: 'This PR was created automatically from the patch branch',
-              labels: ['deploy-hotfix']
+              title,
+              head: hotfixBranch,
+              base: latestPatchBranch,
+              body,
+              labels
             });
-
-      # const isCherryPickSuccess = "${{ steps.squash.outputs.is_cherry_pick_success }}" === "true";
-      # const mergeCommitSha = "${{ steps.squash.outputs.mergeCommitSha }}";
-
-      # const title = `New branch from ${{ steps.patch.outputs.latest_patch_branch }}`;
-      # const head = "${{ steps.squash.outputs.hotfix_branch }}";
-      # const base = "${{ steps.patch.outputs.latest_patch_branch }}";
-      # const labels = isCherryPickSuccess ? ['deploy-hotfix'] : ['deploy-hotfix', 'deploy-conflict'];
-
-      # const body = isCherryPickSuccess ? 
-      #   'This PR was created automatically from the patch branch' : 
-      #   `This PR was created automatically from the patch branch, but there were conflicts when cherry-picking the commit: ${mergeCommitSha}`;
-
-      # const pr = await github.rest.pulls.create({
-      #   owner: context.repo.owner,
-      #   repo: context.repo.repo,
-      #   title,
-      #   head,
-      #   base,
-      #   body,
-      #   labels
-      # });
   
       - name: Show squashed commit
         run: |
           git show ${{ steps.squash.outputs.commit_sha }}
-
-      # - name: Ensure labels exist
-      #   uses: actions/github-script@v7
-      #   with:
-      #     script: |
-      #       const labelsToCheck = ['deploy-hotfix', 'deploy-conflict'];
-
-      #       // Fetch all existing labels in the repo
-      #       const existingLabels = await github.paginate(
-      #         github.rest.issues.listLabelsForRepo,
-      #         {
-      #           owner: context.repo.owner,
-      #           repo: context.repo.repo,
-      #           per_page: 100,
-      #         }
-      #       );
-
-      #       const existingLabelNames = new Set(existingLabels.map(label => label.name));
-
-      #       for (const label of labelsToCheck) {
-      #         const isLabelExists = existingLabelNames.has(label);
-            
-      #         if (!isLabelExists) {
-      #           console.log(`🔧 Creating missing label: ${label}`);
-                
-      #           await github.rest.issues.createLabel({
-      #             owner: context.repo.owner,
-      #             repo: context.repo.repo,
-      #             name: label,
-      #             color: 'ededed',
-      #           });
-      #         }
-      #       }
