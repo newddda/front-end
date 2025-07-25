@@ -1,0 +1,119 @@
+
+name: Show Squashed Merge Commit on PR Comment
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  pull-requests: write
+  contents: write
+  issues: write
+  actions: write
+
+jobs:
+  show-squash-commit:
+    if: |
+      github.event.issue.pull_request != null &&
+      startsWith(github.event.comment.body, 'deploy')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.issue.number }}/head
+
+      - name: Fetch base branch
+        run: |
+          git fetch origin ${{ github.event.pull_request.base.ref }}:${{ github.event.pull_request.base.ref }}
+      - name: Get PR info
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            // Get the merge commit if PR is merged
+            let mergeCommitSha = null;
+            if (pr.data.merged_at) {
+              mergeCommitSha = pr.data.merge_commit_sha;
+            }
+            
+            return JSON.stringify({
+              base: pr.data.base.ref,
+              head: pr.data.head.ref,
+              title: pr.data.title,
+              body: pr.data.body,
+              mergeCommitSha: mergeCommitSha,
+              isMerged: !!pr.data.merged_at
+            })
+
+      - name: Create squash merge commit
+        id: squash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          pr_info='${{ steps.pr.outputs.result }}'
+
+
+
+          # Parse the JSON string first, then extract fields
+          parsed_json=$(echo "$pr_info" | jq -r '.')
+          
+          base=$(echo "$parsed_json" | jq -r '.base')
+          head=$(echo "$parsed_json" | jq -r '.head')
+          title=$(echo "$parsed_json" | jq -r '.title')
+          body=$(echo "$parsed_json" | jq -r '.body')
+          mergeCommitSha=$(echo "$parsed_json" | jq -r '.mergeCommitSha')
+          isMerged=$(echo "$parsed_json" | jq -r '.isMerged')
+
+          # Need to check if the PR is merged ------ HEEEREEEE -------
+            
+          echo "base: $base"
+          echo "head: $head"
+          echo "title: $title"
+          echo "body: $body"
+          echo "isMerged: $isMerged"
+          echo "mergeCommitSha: $mergeCommitSha"
+
+          git fetch --unshallow origin main
+          git checkout $base
+          
+          # Create new branch from patch branch
+          echo "Creating new branch from patch branch..."
+
+          
+
+          git fetch origin patch/v0.1:patch/v0.1
+          git checkout patch/v0.1
+          git checkout -b newBranch
+          
+          # Push the new branch
+          git cherry-pick $mergeCommitSha
+          git push origin newBranch
+          
+          echo "New branch 'newBranch' created from 'patch/v0.1' branch"
+          
+      - name: Create PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'New branch from patch/v0.1',
+              head: 'newBranch',
+              base: 'patch/v0.1',
+              body: 'This PR was created automatically from the patch branch'
+            });
+
+            console.log('PR created successfully');
+  
+      - name: Show squashed commit
+        run: |
+          git show ${{ steps.squash.outputs.commit_sha }}
