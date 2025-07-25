@@ -81,8 +81,6 @@ jobs:
 
           pr_info='${{ steps.pr.outputs.result }}'
 
-
-
           # Parse the JSON string first, then extract fields
           parsed_json=$(echo "$pr_info" | jq -r '.')
 
@@ -117,36 +115,89 @@ jobs:
           git checkout $latest_patch_branch
           git checkout -b $hotfix_branch
           
-          # Push the new branch
-          git cherry-pick $mergeCommitSha
+          # Push the new branch ------ HEEEREEEE -------
+
+          is_cherry_pick_success=false
+
+          if git cherry-pick "$mergeCommitSha"; then
+            is_cherry_pick_success=true
+            echo "✅ Cherry-pick succeeded. Pushing..."
+          else
+            echo "❌ Conflict detected. Aborting cherry-pick..."
+            git cherry-pick --abort
+
+            git commit --allow-empty -m "We have conflicts when cherry-picking the commit: $mergeCommitSha"
+          fi
+
           git push origin $hotfix_branch
           
-          echo "New branch '$hotfix_branch' created from '${{ steps.patch.outputs.latest_patch_branch }}' branch"
-
           echo "hotfix_branch=$hotfix_branch" >> $GITHUB_OUTPUT
+          echo "is_cherry_pick_success=$is_cherry_pick_success" >> $GITHUB_OUTPUT
 
       - name: Create PR
         uses: actions/github-script@v7
         with:
           script: |
-            await github.rest.pulls.create({
+            const isCherryPickSuccess = "${{ steps.squash.outputs.is_cherry_pick_success }}" === "true";
+
+            const title = `New branch from ${{ steps.patch.outputs.latest_patch_branch }}`;
+            const head = "${{ steps.squash.outputs.hotfix_branch }}";
+            const base = "${{ steps.patch.outputs.latest_patch_branch }}";
+            const body = "This PR was created automatically from the patch branch";
+
+            const pr = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: 'New branch from ${{ steps.patch.outputs.latest_patch_branch }}',
-              head: '${{ steps.squash.outputs.hotfix_branch }}',
-              base: '${{ steps.patch.outputs.latest_patch_branch }}',
-              body: 'This PR was created automatically from the patch branch'
+              title,
+              head,
+              base,
+              body
             });
+
+            const labels = isCherryPickSuccess ? ['deploy-hotfix'] : ['deploy-hotfix', 'deploy-conflict'];
 
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: pr.data.number,
-              labels: ['deploy-hotfix']
+              labels
             });
-
-            console.log('PR created successfully');
   
       - name: Show squashed commit
         run: |
           git show ${{ steps.squash.outputs.commit_sha }}
+
+
+
+      # - name: Ensure labels exist
+      #   uses: actions/github-script@v7
+      #   with:
+      #     script: |
+      #       const labelsToCheck = ['deploy-hotfix', 'deploy-conflict'];
+
+      #       // Fetch all existing labels in the repo
+      #       const existingLabels = await github.paginate(
+      #         github.rest.issues.listLabelsForRepo,
+      #         {
+      #           owner: context.repo.owner,
+      #           repo: context.repo.repo,
+      #           per_page: 100,
+      #         }
+      #       );
+
+      #       const existingLabelNames = new Set(existingLabels.map(label => label.name));
+
+      #       for (const label of labelsToCheck) {
+      #         const isLabelExists = existingLabelNames.has(label);
+            
+      #         if (!isLabelExists) {
+      #           console.log(`🔧 Creating missing label: ${label}`);
+                
+      #           await github.rest.issues.createLabel({
+      #             owner: context.repo.owner,
+      #             repo: context.repo.repo,
+      #             name: label,
+      #             color: 'ededed',
+      #           });
+      #         }
+      #       }
