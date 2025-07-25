@@ -133,6 +133,7 @@ jobs:
           echo "latest_patch_branch=${{ steps.patch.outputs.latest_patch_branch }}" >> $GITHUB_OUTPUT
 
       - name: Create PR
+        id: new_pr
         uses: actions/github-script@v7
         with:
           script: |
