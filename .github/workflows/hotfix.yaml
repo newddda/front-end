@@ -149,24 +149,6 @@ jobs:
             git push origin $next_hotfix_branch
           fi
 
-          if git cherry-pick "$mergeCommitSha"; then
-            is_cherry_pick_success=true
-            echo "✅ Cherry-pick succeeded. Pushing..."
-          else
-            echo "❌ Conflict detected. Aborting cherry-pick..."
-            # git cherry-pick --abort
-            git add .
-            git commit -m "We have conflicts when cherry-picking the commit: $mergeCommitSha"
-          fi
-
-          # git cherry-pick "$mergeCommitSha" || true
-
-          if is_cherry_pick_success; then
-            echo "✅ Cherry-pick succeeded. Pushing..."
-          else
-            echo "❌ Conflict detected. Aborting cherry-pick..."
-          fi
-
           git push origin $hotfix_branch
           
           echo "hotfix_branch=$hotfix_branch" >> $GITHUB_OUTPUT
