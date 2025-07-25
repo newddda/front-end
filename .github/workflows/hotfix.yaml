@@ -171,7 +171,7 @@ jobs:
 
             const body = isCherryPickSuccess ? 
               'This PR was created automatically from the patch branch' : 
-              `** Conflicts when cherry pick: ${mergeCommitSha} ** \n\n\n${sc1} \n${sc2} \n${sc3}`;
+              `## Conflicts when cherry pick: ${mergeCommitSha} ## \n\n\n${sc1} \n${sc2} \n${sc3}`;
 
             const pr = await github.rest.pulls.create({
               owner: context.repo.owner,
