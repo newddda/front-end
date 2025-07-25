@@ -114,8 +114,8 @@ jobs:
           git fetch origin $latest_patch_branch:$latest_patch_branch
           git checkout $latest_patch_branch
 
-          pre_hotfix_branch="${latest_patch_branch}_prev"
-          next_hotfix_branch="${latest_patch_branch}_next"
+          pre_hotfix_branch="${hotfix_branch}_prev"
+          next_hotfix_branch="${hotfix_branch}_next"
 
           is_cherry_pick_success=false
 
@@ -129,7 +129,7 @@ jobs:
             git push origin $pre_hotfix_branch
           fi
 
-          git checkout -b $latest_patch_branch
+          git checkout $latest_patch_branch
 
           git checkout -b $next_hotfix_branch
           if git cherry-pick "$mergeCommitSha"; then
@@ -139,13 +139,6 @@ jobs:
             git cherry-pick --continue
             git push origin $next_hotfix_branch
           fi
-
-          # git checkout $latest_patch_branch
-          # git checkout -b $next_hotfix_branch
-
-          
-          # Push the new branch ------ HEEEREEEE -------
-
 
           if git cherry-pick "$mergeCommitSha"; then
             is_cherry_pick_success=true
