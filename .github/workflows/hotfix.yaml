@@ -145,7 +145,7 @@ jobs:
             git push origin $next_hotfix_branch
           fi
 
-          git push origin $hotfix_branch
+          # git push origin $hotfix_branch
           
           echo "hotfix_branch=$hotfix_branch" >> $GITHUB_OUTPUT
           echo "is_cherry_pick_success=$is_cherry_pick_success" >> $GITHUB_OUTPUT
