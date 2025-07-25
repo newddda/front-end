@@ -192,8 +192,14 @@ jobs:
               title,
               head: hotfixBranch,
               base: latestPatchBranch,
-              body,
-              labels
+              body
+            });
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.data.number,
+              labels: labels
             });
           
             return {
@@ -208,7 +214,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const result = JSON.parse('${{ steps.new_pr.outputs.resul }}');
+            const result = JSON.parse('${{ steps.new_pr.outputs.result }}');
             const newPrUrl = result.new_pr_url;
             
             await github.rest.issues.createComment({
