@@ -96,20 +96,22 @@ jobs:
           
           # Create new branch from patch branch
           echo "Creating new branch from patch branch..."
+          
+          timestamp=$(date +%Y%m%d%H%M%S)
 
-          latest_patch_branch='${{ steps.patch.outputs.latest_patch_branch }}'
+          latest_patch_branch=${{ steps.patch.outputs.latest_patch_branch }}
+          hotfix_branch="${latest_patch_branch}_${timestamp}"
 
           git fetch origin $latest_patch_branch:$latest_patch_branch
           git checkout $latest_patch_branch
-          git checkout -b newBranch
+          git checkout -b $hotfix_branch
           
           # Push the new branch
           git cherry-pick $mergeCommitSha
-          git push origin newBranch
-          
-          echo "New branch 'newBranch' created from '$latest_patch_branch' branch"
+          git push origin $hotfix_branch
           
           echo "New branch '$hotfix_branch' created from '${{ steps.patch.outputs.latest_patch_branch }}' branch"
+
           echo "hotfix_branch=$hotfix_branch" >> $GITHUB_OUTPUT
 
       - name: Create PR
