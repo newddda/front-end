@@ -171,27 +171,27 @@ jobs:
               labels: ['deploy-hotfix']
             });
 
-            # const isCherryPickSuccess = "${{ steps.squash.outputs.is_cherry_pick_success }}" === "true";
-            # const mergeCommitSha = "${{ steps.squash.outputs.mergeCommitSha }}";
+      # const isCherryPickSuccess = "${{ steps.squash.outputs.is_cherry_pick_success }}" === "true";
+      # const mergeCommitSha = "${{ steps.squash.outputs.mergeCommitSha }}";
 
-            # const title = `New branch from ${{ steps.patch.outputs.latest_patch_branch }}`;
-            # const head = "${{ steps.squash.outputs.hotfix_branch }}";
-            # const base = "${{ steps.patch.outputs.latest_patch_branch }}";
-            # const labels = isCherryPickSuccess ? ['deploy-hotfix'] : ['deploy-hotfix', 'deploy-conflict'];
+      # const title = `New branch from ${{ steps.patch.outputs.latest_patch_branch }}`;
+      # const head = "${{ steps.squash.outputs.hotfix_branch }}";
+      # const base = "${{ steps.patch.outputs.latest_patch_branch }}";
+      # const labels = isCherryPickSuccess ? ['deploy-hotfix'] : ['deploy-hotfix', 'deploy-conflict'];
 
-            # const body = isCherryPickSuccess ? 
-            #   'This PR was created automatically from the patch branch' : 
-            #   `This PR was created automatically from the patch branch, but there were conflicts when cherry-picking the commit: ${mergeCommitSha}`;
+      # const body = isCherryPickSuccess ? 
+      #   'This PR was created automatically from the patch branch' : 
+      #   `This PR was created automatically from the patch branch, but there were conflicts when cherry-picking the commit: ${mergeCommitSha}`;
 
-            # const pr = await github.rest.pulls.create({
-            #   owner: context.repo.owner,
-            #   repo: context.repo.repo,
-            #   title,
-            #   head,
-            #   base,
-            #   body,
-            #   labels
-            # });
+      # const pr = await github.rest.pulls.create({
+      #   owner: context.repo.owner,
+      #   repo: context.repo.repo,
+      #   title,
+      #   head,
+      #   base,
+      #   body,
+      #   labels
+      # });
   
       - name: Show squashed commit
         run: |
