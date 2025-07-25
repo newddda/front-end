@@ -186,7 +186,25 @@ jobs:
               body,
               labels
             });
+          
+            return JSON.stringify({
+              new_pr_url: pr.data.html_url,
+            })
   
       - name: Show squashed commit
         run: |
           git show ${{ steps.squash.outputs.commit_sha }}
+
+      - name: Comment with new PR link
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const result = JSON.parse('${{ steps.new_pr.outputs.result }}');
+            const newPrUrl = result.new_pr_url;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `A new hotfix PR has been created: [${newPrUrl}](${newPrUrl})`
+            });
