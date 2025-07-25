@@ -97,16 +97,19 @@ jobs:
           # Create new branch from patch branch
           echo "Creating new branch from patch branch..."
 
+          hotfix_branch='${{ steps.patch.outputs.latest_patch_branch }}_hotfix_$mergeCommitSha'
+
           git fetch origin ${{ steps.patch.outputs.latest_patch_branch }}:${{ steps.patch.outputs.latest_patch_branch }}
           git checkout ${{ steps.patch.outputs.latest_patch_branch }}
-          git checkout -b newBranch
+          git checkout -b $hotfix_branch
           
           # Push the new branch
           git cherry-pick $mergeCommitSha
-          git push origin newBranch
+          git push origin $hotfix_branch
           
-          echo "New branch 'newBranch' created from '${{ steps.patch.outputs.latest_patch_branch }}' branch"
-          
+          echo "New branch '$hotfix_branch' created from '${{ steps.patch.outputs.latest_patch_branch }}' branch"
+          echo "hotfix_branch=$hotfix_branch" >> $GITHUB_OUTPUT
+
       - name: Create PR
         uses: actions/github-script@v7
         with:
@@ -115,7 +118,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: 'New branch from ${{ steps.patch.outputs.latest_patch_branch }}',
-              head: 'newBranch',
+              head: '${{ steps.squash.outputs.hotfix_branch }}',
               base: '${{ steps.patch.outputs.latest_patch_branch }}',
               body: 'This PR was created automatically from the patch branch'
               labels: ['deploy-hotfix']
