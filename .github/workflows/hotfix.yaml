@@ -119,18 +119,20 @@ jobs:
 
           is_cherry_pick_success=false
 
-          echo "1"
+          # prev -> next
 
           git checkout -b $pre_hotfix_branch
-          if git cherry-pick "$mergeCommitSha"; then
-            is_cherry_pick_success=true
-          else
-            git checkout --ours .
-            git add .
-            git commit --allow-empty -m "Conflict resolved"
-            # git cherry-pick --continue
-            git push origin $pre_hotfix_branch
-          fi
+          git push origin $pre_hotfix_branch
+          
+          # if git cherry-pick "$mergeCommitSha"; then
+          #   is_cherry_pick_success=true
+          # else
+          #   git checkout --ours .
+          #   git add .
+          #   git commit --allow-empty -m "Conflict resolved"
+          #   # git cherry-pick --continue
+          #   git push origin $pre_hotfix_branch
+          # fi
 
           git checkout $latest_patch_branch
 
