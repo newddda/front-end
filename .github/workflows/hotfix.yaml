@@ -119,15 +119,26 @@ jobs:
 
           is_cherry_pick_success=false
 
+          echo "1"
+
           git checkout -b $pre_hotfix_branch
           if git cherry-pick "$mergeCommitSha"; then
             is_cherry_pick_success=true
           else
+            echo "2"
+
             git checkout --ours .
+            echo "3"
+
             git add .
+            echo "4"
+
             git cherry-pick --continue
+            echo "5"
             git push origin $pre_hotfix_branch
           fi
+
+          echo "6"
 
           git checkout $latest_patch_branch
 
