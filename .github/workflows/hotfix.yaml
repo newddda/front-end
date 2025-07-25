@@ -55,10 +55,21 @@ jobs:
         id: patch
         run: |
           BRANCHES=$(git ls-remote --heads origin "patch/v*" | awk '{print $2}' | sed 's|refs/heads/||')
-          echo "Found branches:"
-          echo "$BRANCHES"
 
-          LATEST=$(echo "$BRANCHES" | sort -t'v' -k2 -V | tail -n 1)
+          # Filter only patch branches with vX.Y pattern (no extra dots)
+          VALID_BRANCHES=$(echo "$BRANCHES" | grep -E '^patch/v[0-9]+\.[0-9]+$')
+
+          if [ -z "$VALID_BRANCHES" ]; then
+            echo "❌ No valid patch branches found (must match patch/vX.Y)"
+            exit 1
+          fi
+
+          echo "Found valid branches:"
+          echo "$VALID_BRANCHES"
+
+          # Sort branches by version (vX.Y) and get the latest
+          LATEST=$(echo "$VALID_BRANCHES" | sort -t'v' -k2 -V | tail -n 1)
+
           echo "Latest patch branch: $LATEST"
           echo "latest_patch_branch=$LATEST" >> $GITHUB_OUTPUT
 
