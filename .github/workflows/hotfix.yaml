@@ -126,17 +126,17 @@ jobs:
             echo "✅ Cherry-pick succeeded. Pushing..."
           else
             echo "❌ Conflict detected. Aborting cherry-pick..."
-            git cherry-pick --abort
+            # git cherry-pick --abort
+            git add .
+            git commit -m "We have conflicts when cherry-picking the commit: $mergeCommitSha"
           fi
 
-          git cherry-pick "$mergeCommitSha" || true
+          # git cherry-pick "$mergeCommitSha" || true
 
           if is_cherry_pick_success; then
             echo "✅ Cherry-pick succeeded. Pushing..."
           else
             echo "❌ Conflict detected. Aborting cherry-pick..."
-            git add .
-            git commit -m "We have conflicts when cherry-picking the commit: $mergeCommitSha"
           fi
 
           git push origin $hotfix_branch
