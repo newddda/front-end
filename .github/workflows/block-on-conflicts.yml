@@ -11,7 +11,7 @@ jobs:
       - name: Check for forbidden labels
         run: |
           echo "Checking for forbidden labels..."
-          forbidden_labels=("do-not-merge" "wip" "blocked")
+          forbidden_labels=("deploy-conflict")
 
           pr_labels=$(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH")
 
