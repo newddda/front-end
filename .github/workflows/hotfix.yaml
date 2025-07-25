@@ -97,16 +97,17 @@ jobs:
           # Create new branch from patch branch
           echo "Creating new branch from patch branch..."
 
-          timestamp=$(date +%Y%m%d%H%M%S)
-          hotfix_branch="${{ steps.patch.outputs.latest_patch_branch }}_${timestamp}"
+          latest_patch_branch='${{ steps.patch.outputs.latest_patch_branch }}'
 
-          git fetch origin ${{ steps.patch.outputs.latest_patch_branch }}:${{ steps.patch.outputs.latest_patch_branch }}
-          git checkout ${{ steps.patch.outputs.latest_patch_branch }}
-          git checkout -b $hotfix_branch
+          git fetch origin $latest_patch_branch:$latest_patch_branch
+          git checkout $latest_patch_branch
+          git checkout -b newBranch
           
           # Push the new branch
           git cherry-pick $mergeCommitSha
-          git push origin $hotfix_branch
+          git push origin newBranch
+          
+          echo "New branch 'newBranch' created from '$latest_patch_branch' branch"
           
           echo "New branch '$hotfix_branch' created from '${{ steps.patch.outputs.latest_patch_branch }}' branch"
           echo "hotfix_branch=$hotfix_branch" >> $GITHUB_OUTPUT
@@ -121,7 +122,13 @@ jobs:
               title: 'New branch from ${{ steps.patch.outputs.latest_patch_branch }}',
               head: '${{ steps.squash.outputs.hotfix_branch }}',
               base: '${{ steps.patch.outputs.latest_patch_branch }}',
-              body: 'This PR was created automatically from the patch branch',
+              body: 'This PR was created automatically from the patch branch'
+            });
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.data.number,
               labels: ['deploy-hotfix']
             });
 
