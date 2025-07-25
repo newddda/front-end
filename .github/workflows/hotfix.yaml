@@ -115,15 +115,19 @@ jobs:
           git checkout $latest_patch_branch
 
           pre_hotfix_branch="${hotfix_branch}_prev"
+          git checkout -b $pre_hotfix_branch
+          git push origin $pre_hotfix_branch
+
+          git checkout $latest_patch_branch
+
           next_hotfix_branch="${hotfix_branch}_next"
+          git checkout -b $next_hotfix_branch
+          git push origin $next_hotfix_branch
 
           is_cherry_pick_success=false
 
           # prev -> next
 
-          git checkout -b $pre_hotfix_branch
-          git push origin $pre_hotfix_branch
-          
           # if git cherry-pick "$mergeCommitSha"; then
           #   is_cherry_pick_success=true
           # else
@@ -134,11 +138,11 @@ jobs:
           #   git push origin $pre_hotfix_branch
           # fi
 
-          git checkout $latest_patch_branch
-
-          git checkout -b $next_hotfix_branch
+          git checkout $next_hotfix_branch
+ 
           if git cherry-pick "$mergeCommitSha"; then
             is_cherry_pick_success=true
+            echo "✅ Cherry-pick succeeded. Pushing..."
           else
             git checkout --theirs .
             git add .
