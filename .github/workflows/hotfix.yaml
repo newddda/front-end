@@ -183,9 +183,9 @@ jobs:
               labels
             });
           
-            return JSON.stringify({
+            return {
               new_pr_url: pr.data.html_url,
-            });
+            };
   
       - name: Show squashed commit
         run: |
