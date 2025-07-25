@@ -121,7 +121,8 @@ jobs:
               title: 'New branch from ${{ steps.patch.outputs.latest_patch_branch }}',
               head: '${{ steps.squash.outputs.hotfix_branch }}',
               base: '${{ steps.patch.outputs.latest_patch_branch }}',
-              body: 'This PR was created automatically from the patch branch'
+              body: 'This PR was created automatically from the patch branch',
+              labels: ['deploy-hotfix']
             });
 
             console.log('PR created successfully');
