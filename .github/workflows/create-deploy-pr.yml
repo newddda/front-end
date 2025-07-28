@@ -15,7 +15,8 @@ jobs:
       TARGET_REPO: newddda/deploy
       # TARGET_REPO: ${{ github.repository }}
       FILE_PATH: front-end.json
-      BRANCH_NAME: update-frontend-json-${{ github.event.inputs.version }}
+      # BRANCH_NAME: update-frontend-json-${{ github.event.inputs.version }}
+      BRANCH_NAME: main
 
     steps:
       - name: Checkout target repo
