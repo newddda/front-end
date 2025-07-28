@@ -144,7 +144,9 @@ jobs:
               body,
             });
 
-            core.setOutput("pr_url", pr.data.html_url);
+            return {
+              pr_url: pr.data.html_url,
+            };
 
       - name: Comment with deploy PR link to PR
         uses: actions/github-script@v7
