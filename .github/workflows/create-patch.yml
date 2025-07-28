@@ -118,6 +118,7 @@ jobs:
           git push origin $BRANCH_NAME
 
       - name: Create PR in deploy repo
+        id: create_deploy_pr
         uses: actions/github-script@v7
         env:
           DEPLOY_GH_TOKEN: ${{ secrets.DEPLOY_GH_TOKEN }}
@@ -145,6 +146,20 @@ jobs:
 
             core.setOutput("pr_url", pr.data.html_url);
 
+      - name: Comment with deploy PR link to PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = "${{ steps.find-latest-tag.outputs.new_version }}";
+            const result = JSON.parse(`${{ toJson(steps.create_deploy_pr.outputs.result) }}`);
+            const newPrUrl = result.pr_url;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `A new patch tag has been created: [${version}](https://github.com/${context.repo.owner}/${context.repo.repo}/releases/tag/${version})\nDeploy PR has been prepared: [${newPrUrl}](${newPrUrl})`
+            });
 
       - name: Add deploy-conflict label on failure
         if: steps.find-latest-tag.outputs.tag_created == 'false'
