@@ -31,7 +31,7 @@ jobs:
 
       - name: Create and switch to new branch
         run: |
-          git checkout -b $BRANCH_NAME
+          git checkout $BRANCH_NAME
 
       - name: Debug file listing
         run: ls -al
