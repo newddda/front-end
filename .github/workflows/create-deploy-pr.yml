@@ -12,35 +12,36 @@ jobs:
   update-pr:
     runs-on: ubuntu-latest
     env:
-      TARGET_REPO: newddda/deploy
-      # TARGET_REPO: ${{ github.repository }}
       FILE_PATH: front-end.json
-      # BRANCH_NAME: update-frontend-json-${{ github.event.inputs.version }}
-      BRANCH_NAME: main
+      TARGET_REPO: newddda/deploy
+      BRANCH_NAME: update-frontend-json-${{ github.event.inputs.version }}
 
     steps:
       - name: Checkout target repo
         uses: actions/checkout@v4
+        with:
+          repository: ${{ env.TARGET_REPO }}
+          token: ${{ secrets.GH_TOKEN }} # You must store a PAT with write access in target repo
+          ref: main
 
       - name: Set up Git config
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Create new branch
-        run: | 
-          git checkout $BRANCH_NAME
-          git pull origin $BRANCH_NAME
+      - name: Create and switch to new branch
+        run: |
+          git checkout -b $BRANCH_NAME
 
-      - name: List all files
-        run: ls -R
+      - name: Debug file listing
+        run: ls -al
 
       - name: Update front-end.json
         run: |
           VERSION="${{ github.event.inputs.version }}"
           jq --arg v "$VERSION" '.stage = $v | .prod = $v' $FILE_PATH > tmp.json && mv tmp.json $FILE_PATH
 
-      - name: Commit and push
+      - name: Commit and push changes
         run: |
           git add $FILE_PATH
           git commit -m "chore: update front-end.json to $VERSION"
@@ -49,7 +50,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}  # Again: Must be a PAT from the source repo with access to target
           title: "Update front-end.json to ${{ github.event.inputs.version }}"
           body: "This PR updates front-end.json with version ${{ github.event.inputs.version }}."
           head: ${{ env.BRANCH_NAME }}
