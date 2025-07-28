@@ -12,8 +12,6 @@ d
 sdfgsdfg
 sdfgsdfg
 fgdhdfgh
-fhjfghj
-1
 5
 dwq
 sdfasdfret
