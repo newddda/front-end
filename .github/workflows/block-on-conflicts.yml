@@ -13,6 +13,7 @@ jobs:
         with:
           script: |
             const labels = context.payload.pull_request.labels.map(l => l.name);
+            
             if (labels.includes('deploy-conflict')) {
               core.setFailed('Merge blocked: PR contains "deploy-conflict" label.');
             } else {

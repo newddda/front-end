@@ -76,15 +76,8 @@ jobs:
             echo "tag_created=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Push new tag
-        if: steps.find-latest-tag.outputs.tag_created == 'true'
-        run: |
-          NEW_VERSION="${{ steps.find-latest-tag.outputs.new_version }}"
-          git push origin $NEW_VERSION
-          
-          # Update latest tag
-          git tag -f latest $NEW_VERSION
-          git push origin latest --force
+          git tag $new_version
+          git push origin $new_version
 
       - name: Checkout target repo
         uses: actions/checkout@v4
@@ -175,5 +168,6 @@ jobs:
               issue_number: number,
               labels: ['deploy-conflict']
             });
+
             console.log('Added deploy-conflict label due to cherry-pick failure');
 
