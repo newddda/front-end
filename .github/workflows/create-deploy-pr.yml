@@ -22,7 +22,7 @@ jobs:
         with:
           repository: ${{ env.TARGET_REPO }}
           token: ${{ secrets.DEPLOY_GH_TOKEN }} # You must store a PAT with write access in target repo
-          ref: main
+          ref: deploy-${{ github.event.inputs.version }}
 
       - name: Set up Git config
         run: |
@@ -31,7 +31,7 @@ jobs:
 
       - name: Create and switch to new branch
         run: |
-          git checkout $BRANCH_NAME
+          git checkout -b $BRANCH_NAME
 
       - name: Debug file listing
         run: ls -al
