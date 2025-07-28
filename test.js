@@ -25,8 +25,6 @@ d
 qqqdd
 dd
 dd
-aaa
-dd
 d
 daaa
 d
