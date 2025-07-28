@@ -13,13 +13,20 @@ jobs:
           echo "Checking for forbidden labels..."
           forbidden_labels=("deploy-conflict")
 
-          pr_labels=$(jq -r '.pull_request.labels[].name' "$GITHUB_EVENT_PATH")
+          # Get PR labels, handle case when no labels exist
+          pr_labels=$(jq -r '.pull_request.labels[].name // empty' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
 
           echo "Labels on PR: $pr_labels"
+
+          if [[ -z "$pr_labels" ]]; then
+            echo "✅ No labels found on PR. Continuing."
+            exit 0
+          fi
 
           for forbidden in "${forbidden_labels[@]}"; do
             if echo "$pr_labels" | grep -iq "^$forbidden$"; then
               echo "❌ PR has forbidden label: $forbidden"
+              echo "This PR is blocked due to conflicts that need to be resolved."
               exit 1
             fi
           done
