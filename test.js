@@ -22,16 +22,6 @@ d
 
 d
 d
-dd :) wdq
-dwqdqw
-d
-d
-dq
-dwq
-d
-d
-d
-d
 qqq
 d
 d
