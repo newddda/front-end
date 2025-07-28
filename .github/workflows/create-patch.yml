@@ -14,7 +14,9 @@ jobs:
   tag-latest-on-hotfix:
     if: |
       github.event.pull_request.merged == true &&
-      contains(github.event.pull_request.labels.*.name, 'deploy-hotfix')
+      contains(github.event.pull_request.labels.*.name, 'deploy-hotfix') &&
+      startsWith(github.event.pull_request.head.ref, 'hotfix/patch/') &&
+      startsWith(github.event.pull_request.base.ref, 'patch/')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
