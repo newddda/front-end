@@ -157,7 +157,7 @@ jobs:
 
             const sc1 = `
             \`\`\`bash
-            git fetch origin $hotfixBranch:$hotfixBranch
+            git fetch origin ${hotfixBranch}:${hotfixBranch}
             git checkout ${hotfixBranch}
             git cherry-pick ${mergeCommitSha}
             \`\`\`
