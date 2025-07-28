@@ -13,9 +13,6 @@ dwq
 d
 d
 d
-dddwq
-qqqdd
-dd
 dd
 d
 daaa
