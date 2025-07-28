@@ -1,72 +1,32 @@
-name: Block PRs with Forbidden Labels
+name: PRs with Forbidden Labels
 
 on:
   pull_request:
     types: [labeled, unlabeled, synchronize, reopened, opened]
 
 permissions:
-  pull-requests: read
   contents: read
+  pull-requests: read
 
 jobs:
-  block-pr:
+  check-forbidden-labels:
+    name: PRs with Forbidden Labels
     runs-on: ubuntu-latest
     steps:
       - name: Check for forbidden labels
-        id: label-check
         run: |
           echo "Checking for forbidden labels..."
           forbidden_labels=("deploy-conflict")
 
-          # Get PR labels, handle case when no labels exist
-          pr_labels=$(jq -r '.pull_request.labels[].name // empty' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
-
+          pr_labels=$(jq -r '.pull_request.labels[]?.name' "$GITHUB_EVENT_PATH")
           echo "Labels on PR: $pr_labels"
-
-          if [[ -z "$pr_labels" ]]; then
-            echo "✅ No labels found on PR. Continuing."
-            echo "status=success" >> $GITHUB_OUTPUT
-            exit 0
-          fi
 
           for forbidden in "${forbidden_labels[@]}"; do
             if echo "$pr_labels" | grep -iq "^$forbidden$"; then
               echo "❌ PR has forbidden label: $forbidden"
               echo "This PR is blocked due to conflicts that need to be resolved."
-              echo "status=failure" >> $GITHUB_OUTPUT
               exit 1
             fi
           done
 
           echo "✅ No forbidden labels found. Continuing."
-          echo "status=success" >> $GITHUB_OUTPUT
-
-      - name: Report status to GitHub
-        if: always()
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const { owner, repo, sha } = context;
-            const status = '${{ steps.label-check.outputs.status }}';
-            
-            if (status === 'success') {
-              await github.rest.repos.createCommitStatus({
-                owner,
-                repo,
-                sha,
-                state: 'success',
-                target_url: `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`,
-                description: 'No forbidden labels found',
-                context: 'Block PRs with Forbidden Labels'
-              });
-            } else {
-              await github.rest.repos.createCommitStatus({
-                owner,
-                repo,
-                sha,
-                state: 'failure',
-                target_url: `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`,
-                description: 'PR has forbidden labels',
-                context: 'Block PRs with Forbidden Labels'
-              });
-            }
