@@ -14,6 +14,7 @@ jobs:
     env:
       FILE_PATH: front-end.json
       TARGET_REPO: newddda/deploy
+      VERSION: ${{ github.event.inputs.version }}
       BRANCH_NAME: deploy-${{ github.event.inputs.version }}
 
     steps:
@@ -47,11 +48,30 @@ jobs:
           git commit -m "chore: update front-end.json to $VERSION"
           git push origin $BRANCH_NAME
 
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
+      - name: Create PR in deploy repo
+        uses: actions/github-script@v7
+        env:
+          DEPLOY_GH_TOKEN: ${{ secrets.DEPLOY_GH_TOKEN }}
         with:
-          token: ${{ secrets.DEPLOY_GH_TOKEN }}  # Again: Must be a PAT from the source repo with access to target
-          title: "Update front-end.json to ${{ github.event.inputs.version }}"
-          body: "This PR updates front-end.json with version ${{ github.event.inputs.version }}."
-          head: ${{ env.BRANCH_NAME }}
-          base: main
+          github-token: ${{ secrets.DEPLOY_GH_TOKEN }}
+          script: |
+            const version = "${{ github.event.inputs.version }}";
+            const branchName = `update-frontend-json-${version}`;
+            const owner = 'newddda';
+            const repo = 'deploy';
+
+            const title = `Update front-end.json to ${version}`;
+            const body = `This PR updates front-end.json with version ${version}.`;
+            const base = 'main';
+            const head = branchName;
+
+            const pr = await github.rest.pulls.create({
+              owner,
+              repo,
+              title,
+              head,
+              base,
+              body,
+            });
+
+            core.setOutput("pr_url", pr.data.html_url);
