@@ -16,6 +16,10 @@ fhjfghj
 dwq
 sdfasdfret
 d
+0
+0
+0
+0
 sdfsdfg
 sdfgsdfg
 s
