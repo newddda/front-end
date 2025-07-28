@@ -33,20 +33,25 @@ jobs:
           PATCH_BRANCH="${{ github.event.pull_request.base.ref }}"
           echo "Patch branch: $PATCH_BRANCH"
           
-          prefix=$(echo $PATCH_BRANCH | cut -d'/' -f2)
+          echo "1"
+          prefix=$(echo $_PATCH_BRANCH | cut -d'/' -f2)
           
+
+          echo "2"
           git fetch origin --tags
           current_version=$(git tag --merged HEAD | grep "^${prefix}\." | sort -V | tail -n1)
-          timestamp=$(date +%Y%m%d%H%M%S)
           
+          echo "3"
           # Extract version numbers
           major=$(echo $current_version | cut -d'.' -f1 | tr -d 'v')
           minor=$(echo $current_version | cut -d'.' -f2)
           patch=$(echo $current_version | cut -d'.' -f3)
 
+          echo "4"
           new_patch=$((patch + 1))
           new_version="v${major}.${minor}.${new_patch}"
           
+          echo "5"
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
           
           # Try to create the new tag
