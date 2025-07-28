@@ -12,11 +12,6 @@ d
 dwq
 d
 d
-d
-dd
-d
-daaa
-d
 s
 dd
 d
