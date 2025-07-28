@@ -58,15 +58,6 @@ jobs:
           echo "new_version: $new_version"
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
           
-          # Try to create the new tag
-          if git tag $new_version; then
-            echo "Successfully created tag: $new_version"
-            echo "tag_created=true" >> $GITHUB_OUTPUT
-          else
-            echo "Failed to create tag: $new_version"
-            echo "tag_created=false" >> $GITHUB_OUTPUT
-          fi
-
           git tag $new_version
           git push origin $new_version
 
