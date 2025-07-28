@@ -1,0 +1,50 @@
+name: Update front-end.json and create PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'New version tag (e.g., v0.696.5)'
+        required: true
+        type: string
+
+jobs:
+  update-pr:
+    runs-on: ubuntu-latest
+    env:
+      TARGET_REPO: newddda/deploy
+      # TARGET_REPO: ${{ github.repository }}
+      FILE_PATH: front-end.json
+      BRANCH_NAME: update-frontend-json-${{ github.event.inputs.version }}
+
+    steps:
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+
+      - name: Set up Git config
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create new branch
+        run: git checkout -b $BRANCH_NAME
+
+      - name: Update front-end.json
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          jq --arg v "$VERSION" '.stage = $v | .prod = $v' $FILE_PATH > tmp.json && mv tmp.json $FILE_PATH
+
+      - name: Commit and push
+        run: |
+          git add $FILE_PATH
+          git commit -m "chore: update front-end.json to $VERSION"
+          git push origin $BRANCH_NAME
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Update front-end.json to ${{ github.event.inputs.version }}"
+          body: "This PR updates front-end.json with version ${{ github.event.inputs.version }}."
+          head: ${{ env.BRANCH_NAME }}
+          base: main
