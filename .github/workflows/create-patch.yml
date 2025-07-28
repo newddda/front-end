@@ -153,7 +153,7 @@ jobs:
         with:
           script: |
             const version = "${{ steps.find-latest-tag.outputs.new_version }}";
-            const result = JSON.parse(`${{ toJson(steps.create_deploy_pr.outputs.result) }}`);
+            const result = JSON.parse('${{ steps.create_deploy_pr.outputs.result }}');
             const newPrUrl = result.pr_url;
 
             await github.rest.issues.createComment({
