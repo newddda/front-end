@@ -56,7 +56,7 @@ jobs:
           github-token: ${{ secrets.DEPLOY_GH_TOKEN }}
           script: |
             const version = "${{ github.event.inputs.version }}";
-            const branchName = `update-frontend-json-${version}`;
+            const branchName = `deploy-${version}`;
             const owner = 'newddda';
             const repo = 'deploy';
 
