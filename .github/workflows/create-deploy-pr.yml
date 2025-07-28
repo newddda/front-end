@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ env.TARGET_REPO }}
-          token: ${{ secrets.GH_TOKEN }} # You must store a PAT with write access in target repo
+          token: ${{ secrets.DEPLOY_GH_TOKEN }} # You must store a PAT with write access in target repo
           ref: main
 
       - name: Set up Git config
@@ -50,7 +50,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.GH_TOKEN }}  # Again: Must be a PAT from the source repo with access to target
+          token: ${{ secrets.DEPLOY_GH_TOKEN }}  # Again: Must be a PAT from the source repo with access to target
           title: "Update front-end.json to ${{ github.event.inputs.version }}"
           body: "This PR updates front-end.json with version ${{ github.event.inputs.version }}."
           head: ${{ env.BRANCH_NAME }}
