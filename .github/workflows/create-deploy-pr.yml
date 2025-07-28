@@ -22,7 +22,7 @@ jobs:
         with:
           repository: ${{ env.TARGET_REPO }}
           token: ${{ secrets.DEPLOY_GH_TOKEN }} # You must store a PAT with write access in target repo
-          ref: ${{ env.BRANCH_NAME }}
+          ref: main
 
       - name: Set up Git config
         run: |
