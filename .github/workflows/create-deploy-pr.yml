@@ -28,7 +28,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Create new branch
-        run: git checkout -b $BRANCH_NAME
+        run: git checkout $BRANCH_NAME
 
       - name: Update front-end.json
         run: |
