@@ -14,14 +14,6 @@ d
 d
 d
 dddwq
-qwd
-d
-d
-d
-d
-qqq
-d
-d
 qqqdd
 dd
 dd
