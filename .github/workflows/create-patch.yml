@@ -33,36 +33,49 @@ jobs:
         id: find-latest-tag
         run: |
           echo "Getting merged patch branch..."
+
+          latest_tag=$(git tag --sort=-v:refname | grep -E '^v\.?[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+
+          if [ -z "$latest_tag" ]; then
+            echo "No existing tags. Starting from v0.0.1"
+            new_version="v0.0.1"
+          else
+            normalized=$(echo "$latest_tag" | sed 's/^v\.*/v/')
+            version="${normalized#v}"
+            IFS='.' read -r major minor patch <<< "$version"
+            patch=$((patch + 1))
+            new_version="v$major.$minor.$patch"
+          fi
           
           # Get the merged patch branch from the PR
-          MERGED_PATCH_BRANCH="${{ github.event.pull_request.base.ref }}"
-          echo "Merged patch branch: $MERGED_PATCH_BRANCH"
+          # MERGED_PATCH_BRANCH="${{ github.event.pull_request.base.ref }}"
+          # echo "Merged patch branch: $MERGED_PATCH_BRANCH"
           
-          # Extract version prefix from the merged patch branch
-          prefix=$(echo $MERGED_PATCH_BRANCH | cut -d'/' -f2)
-          echo "Version prefix: $prefix"
+          # # Extract version prefix from the merged patch branch
+          # prefix=$(echo $MERGED_PATCH_BRANCH | cut -d'/' -f2)
+          # echo "Version prefix: $prefix"
           
-          git fetch origin --tags
-          current_version=$(git tag --merged HEAD | grep "^${prefix}\." | sort -V | tail -n1)
+          # git fetch origin --tags
+          # current_version=$(git tag --merged HEAD | grep "^${prefix}\." | sort -V | tail -n1)
           
-          echo "Current version: $current_version"
+          # echo "Current version: $current_version"
           
-          if [[ -z "$current_version" ]]; then
-            echo "No existing version found, starting with .1"
-            new_version="${prefix}.1"
-          else
-            # Extract version numbers
-            major=$(echo $current_version | cut -d'.' -f1 | tr -d 'v')
-            minor=$(echo $current_version | cut -d'.' -f2)
-            patch=$(echo $current_version | cut -d'.' -f3)
+          # if [[ -z "$current_version" ]]; then
+          #   echo "No existing version found, starting with .1"
+          #   new_version="${prefix}.1"
+          # else
+          #   # Extract version numbers
+          #   major=$(echo $current_version | cut -d'.' -f1 | tr -d 'v')
+          #   minor=$(echo $current_version | cut -d'.' -f2)
+          #   patch=$(echo $current_version | cut -d'.' -f3)
 
-            echo "major: $major"
-            echo "minor: $minor"
-            echo "patch: $patch"
+          #   echo "major: $major"
+          #   echo "minor: $minor"
+          #   echo "patch: $patch"
 
-            new_patch=$((patch + 1))
-            new_version="v${major}.${minor}.${new_patch}"
-          fi
+          #   new_patch=$((patch + 1))
+          #   new_version="v${major}.${minor}.${new_patch}"
+          # fi
           
           echo "new_version: $new_version"
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
