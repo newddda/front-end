@@ -14,7 +14,7 @@ jobs:
     env:
       FILE_PATH: front-end.json
       TARGET_REPO: newddda/deploy
-      BRANCH_NAME: main
+      BRANCH_NAME: deploy-${{ github.event.inputs.version }}
 
     steps:
       - name: Checkout target repo
@@ -22,7 +22,7 @@ jobs:
         with:
           repository: ${{ env.TARGET_REPO }}
           token: ${{ secrets.DEPLOY_GH_TOKEN }} # You must store a PAT with write access in target repo
-          ref: deploy-${{ github.event.inputs.version }}
+          ref: ${{ env.BRANCH_NAME }}
 
       - name: Set up Git config
         run: |
