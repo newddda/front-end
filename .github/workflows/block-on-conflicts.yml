@@ -8,13 +8,13 @@ jobs:
   check-label:
     runs-on: ubuntu-latest
     steps:
-      - name: Check for "no-deploy" label
+      - name: Check for "deploy-conflict" label
         uses: actions/github-script@v7
         with:
           script: |
             const labels = context.payload.pull_request.labels.map(l => l.name);
-            if (labels.includes('no-deploy')) {
-              core.setFailed('Merge blocked: PR contains "no-deploy" label.');
+            if (labels.includes('deploy-conflict')) {
+              core.setFailed('Merge blocked: PR contains "deploy-conflict" label.');
             } else {
-              core.info('PR does not contain "no-deploy" label. OK to merge.');
+              core.info('PR does not contain "deploy-conflict" label. OK to merge.');
             }
